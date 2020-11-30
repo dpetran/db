@@ -163,6 +163,7 @@
                  {:name "psot" :type "fluree.FdbChildNode"} ;; psot
                  {:name "post" :type "fluree.FdbChildNode"} ;; post
                  {:name "opst" :type "fluree.FdbChildNode"} ;; opst
+                 {:name "taspo" :type "fluree.FdbChildNode"}
                  {:name "timestamp" :type [:null :long]}
                  {:name "prevIndex" :type [:null :long]}]}))
 

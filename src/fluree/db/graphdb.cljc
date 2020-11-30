@@ -244,7 +244,7 @@
                                      e)))))
     return-chan))
 
-(defrecord GraphDb [conn network dbid block t tt-id stats spot psot post opst schema settings index-configs schema-cache novelty permissions fork fork-block current-db-fn]
+(defrecord GraphDb [conn network dbid block t tt-id stats spot psot post opst taspo schema settings index-configs schema-cache novelty permissions fork fork-block current-db-fn]
   dbproto/IFlureeDb
   (-latest-db [this]
     (go-try
@@ -323,7 +323,7 @@
 
 (defn new-novelty-map
   [index-configs]
-  (->> [:spot :psot :post :opst]
+  (->> [:spot :psot :post :opst :taspo]
        (reduce
          (fn [m idx]
            (let [ss (avl/sorted-set-by (get-in index-configs [idx :historyComparator]))]
@@ -345,18 +345,21 @@
     ;; mark all indexes as dirty to ensure they get written to disk on first indexing process
     idx-node))
 
-(def default-index-configs {:spot (index/map->IndexConfig {:index-type        :spot
-                                                           :comparator        flake/cmp-flakes-spot
-                                                           :historyComparator flake/cmp-flakes-spot-novelty})
-                            :psot (index/map->IndexConfig {:index-type        :psot
-                                                           :comparator        flake/cmp-flakes-psot
-                                                           :historyComparator flake/cmp-flakes-psot-novelty})
-                            :post (index/map->IndexConfig {:index-type        :post
-                                                           :comparator        flake/cmp-flakes-post
-                                                           :historyComparator flake/cmp-flakes-post-novelty})
-                            :opst (index/map->IndexConfig {:index-type        :opst
-                                                           :comparator        flake/cmp-flakes-opst
-                                                           :historyComparator flake/cmp-flakes-opst-novelty})})
+(def default-index-configs {:spot  (index/map->IndexConfig {:index-type        :spot
+                                                            :comparator        flake/cmp-flakes-spot
+                                                            :historyComparator flake/cmp-flakes-spot-novelty})
+                            :psot  (index/map->IndexConfig {:index-type        :psot
+                                                            :comparator        flake/cmp-flakes-psot
+                                                            :historyComparator flake/cmp-flakes-psot-novelty})
+                            :post  (index/map->IndexConfig {:index-type        :post
+                                                            :comparator        flake/cmp-flakes-post
+                                                            :historyComparator flake/cmp-flakes-post-novelty})
+                            :opst  (index/map->IndexConfig {:index-type        :opst
+                                                            :comparator        flake/cmp-flakes-opst
+                                                            :historyComparator flake/cmp-flakes-opst-novelty})
+                            :taspo (index/map->IndexConfig {:index-type        :taspo
+                                                            :comparator        flake/cmp-flakes-block
+                                                            :historyComparator flake/cmp-flakes-history})})
 
 (defn blank-db
   [conn network dbid schema-cache current-db-fn]
@@ -371,6 +374,7 @@
         psot        (new-empty-index conn default-index-configs network dbid :psot)
         post        (new-empty-index conn default-index-configs network dbid :post)
         opst        (new-empty-index conn default-index-configs network dbid :opst)
+        taspo       (new-empty-index conn default-index-configs network dbid :taspo)
         stats       {:flakes  0
                      :size    0
                      :indexed 0}
@@ -378,9 +382,8 @@
         fork-block  nil
         schema      nil
         settings    nil]
-    (->GraphDb conn network dbid 0 -1 nil stats spot psot post opst schema settings default-index-configs schema-cache novelty permissions fork fork-block current-db-fn)))
+    (->GraphDb conn network dbid 0 -1 nil stats spot psot post opst taspo schema settings default-index-configs schema-cache novelty permissions fork fork-block current-db-fn)))
 
 (defn graphdb?
   [db]
   (instance? GraphDb db))
-

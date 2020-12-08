@@ -190,7 +190,7 @@
    (write-db-root db nil))
   ([db custom-ecount]
    (go-try
-     (let [{:keys [conn network dbid block t ecount stats spot psot post opst taspo fork fork-block]} db
+     (let [{:keys [conn network dbid block t ecount stats spot psot post opst tspo fork fork-block]} db
            db-root-key (ledger-root-key network dbid block)
            data        {:dbid      dbid
                         :block     block
@@ -201,7 +201,7 @@
                         :psot      (child-data psot)
                         :post      (child-data post)
                         :opst      (child-data opst)
-                        :taspo     (child-data taspo)
+                        :tspo      (child-data tspo)
                         :timestamp (util/current-time-millis)
                         :prevIndex (or (:indexed stats) 0)
                         :fork      fork
@@ -304,7 +304,7 @@
   "Gets a history slice of a node with the oldest 't' from-t, to the
   most recent 't', to-t.
 
-  Returns sorted set in novelty's sort order (spot, psot, post, opst, or taspo (block))"
+  Returns sorted set in novelty's sort order (spot, psot, post, opst, or tspo (block))"
   [node from-t to-t idx-novelty leftmost?]
   (go
     (try*
@@ -497,7 +497,7 @@
     (reduce
       (fn [db idx]
         (assoc db idx (reify-index-root conn index-configs network dbid idx (get root-data idx) block t)))
-      db* [:spot :psot :post :opst :taspo])))
+      db* [:spot :psot :post :opst :tspo])))
 
 
 (defn read-garbage

@@ -90,6 +90,6 @@
   (println "-----------")
   (pprint-index (:opst db))
   (println "")
-  (println "taspo:")
+  (println "tspo:")
   (println "-----------")
-  (pprint-index (:taspo db)))
+  (pprint-index (:tspo db)))

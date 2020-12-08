@@ -244,7 +244,7 @@
                                      e)))))
     return-chan))
 
-(defrecord GraphDb [conn network dbid block t tt-id stats spot psot post opst taspo schema settings index-configs schema-cache novelty permissions fork fork-block current-db-fn]
+(defrecord GraphDb [conn network dbid block t tt-id stats spot psot post opst tspo schema settings index-configs schema-cache novelty permissions fork fork-block current-db-fn]
   dbproto/IFlureeDb
   (-latest-db [this]
     (go-try
@@ -323,7 +323,7 @@
 
 (defn new-novelty-map
   [index-configs]
-  (->> [:spot :psot :post :opst :taspo]
+  (->> [:spot :psot :post :opst :tspo]
        (reduce
          (fn [m idx]
            (let [ss (avl/sorted-set-by (get-in index-configs [idx :historyComparator]))]
@@ -357,7 +357,7 @@
                             :opst  (index/map->IndexConfig {:index-type        :opst
                                                             :comparator        flake/cmp-flakes-opst
                                                             :historyComparator flake/cmp-flakes-opst-novelty})
-                            :taspo (index/map->IndexConfig {:index-type        :taspo
+                            :tspo  (index/map->IndexConfig {:index-type        :tspo
                                                             :comparator        flake/cmp-flakes-block
                                                             :historyComparator flake/cmp-flakes-history})})
 
@@ -374,7 +374,7 @@
         psot        (new-empty-index conn default-index-configs network dbid :psot)
         post        (new-empty-index conn default-index-configs network dbid :post)
         opst        (new-empty-index conn default-index-configs network dbid :opst)
-        taspo       (new-empty-index conn default-index-configs network dbid :taspo)
+        tspo        (new-empty-index conn default-index-configs network dbid :tspo)
         stats       {:flakes  0
                      :size    0
                      :indexed 0}
@@ -382,7 +382,7 @@
         fork-block  nil
         schema      nil
         settings    nil]
-    (->GraphDb conn network dbid 0 -1 nil stats spot psot post opst taspo schema settings default-index-configs schema-cache novelty permissions fork fork-block current-db-fn)))
+    (->GraphDb conn network dbid 0 -1 nil stats spot psot post opst tspo schema settings default-index-configs schema-cache novelty permissions fork fork-block current-db-fn)))
 
 (defn graphdb?
   [db]

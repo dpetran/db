@@ -111,8 +111,8 @@
 
 
 (defn pred-ident?
-  "Tests if an predicate identity two-tuple
-  in form of [pred-name-or-id pred-value]"
+  "Tests if `x` is a predicate identity two-tuple in form
+  of `[pred-name-or-id pred-value]`"
   [x]
   (and (sequential? x)
        (= 2 (count x))

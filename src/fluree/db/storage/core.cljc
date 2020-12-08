@@ -410,7 +410,8 @@
                      (throw leaf))
               {:keys [flakes his]} leaf
               {:keys [comparator]} config
-              node (index/data-node block t (apply flake/sorted-set-by comparator flakes) rhs config)]
+              sorted-flakes (apply flake/sorted-set-by comparator flakes)
+              node (index/data-node block t sorted-flakes rhs config)]
           (async/put! return-ch node))
         (catch* e
                 (error-fn)

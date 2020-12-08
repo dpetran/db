@@ -72,7 +72,8 @@
 (defn time-range
   "Range query across an index.
 
-  Uses a DB, but in the future support supplying a connection and db name, as we don't need a 't'
+  Uses a DB, but in the future support supplying a connection and db name, as we
+  don't need a 't'
 
   Ranges take the natural numeric sort orders, but all results will
   return in reverse order (newest subjects and predicates first).
@@ -80,10 +81,17 @@
   Returns core async channel.
 
   opts:
-  :from-t - start transaction (transaction 't' is negative, so smallest number is most recent). Defaults to db's t
+
+  :from-t - start transaction (transaction 't' is negative, so smallest number
+            is most recent). Defaults to db's t
+
   :to-t - stop transaction - can be null, which pulls full history
-  :xform - xform applied to each result individually. This is not used when :chan is supplied.
+
+  :xform - xform applied to each result individually. This is not used
+           when :chan is supplied.
+
   :limit - max number of flakes to return"
+
   ([db idx] (time-range db idx {}))
   ([db idx opts] (time-range db idx >= (min-match idx) <= (max-match idx) opts))
   ([db idx test match] (time-range db idx test match {}))
@@ -116,7 +124,8 @@
            o2                 (if (util/pred-ident? o2)
                                 (<? (dbproto/-subid db o2))
                                 o2)
-           ;; for >=, start at the beginning of the possible range for exp and for > start at the end
+           ;; for >= start at the beginning of the possible range for exp, and
+           ;; for > start at the end
            p1                 (if (and (nil? p1) o1) -1 p1)
            p2                 (if (and (nil? p2) o2) flake/MAX-PREDICATE-ID p2)
            m1                 (or m1 (if (identical? >= start-test) util/min-integer util/max-integer))
@@ -482,4 +491,3 @@
                                 :sigs      sigs
                                 :flakes    flakes
                                 :txn       txn-flakes'}))))))
-

@@ -48,6 +48,9 @@
 (def ^{:private true :const true} pred-min-match [0])
 (def ^{:private true :const true} pred-max-match [flake/MAX-PREDICATE-ID])
 
+;; Transaction max/min matches are reversed
+(def ^{:private true :const true} transaction-min-match [util/max-integer])
+(def ^{:private true :const true} transaction-max-match [util/min-integer])
 
 (defn- min-match
   "Smallest index flake part match by index"
@@ -56,18 +59,31 @@
     :spot subject-min-match
     :psot pred-min-match
     :post pred-min-match
-    :opst subject-min-match))
+    :opst subject-min-match
+    :tspo transaction-min-match))
 
 
 (defn- max-match
-  "Smallest index flake part match by index"
+  "Biggest index flake part match by index"
   [idx]
   (case idx
     :spot subject-max-match
     :psot pred-max-match
     :post pred-max-match
-    :opst subject-max-match))
+    :opst subject-max-match
+    :tspo transaction-max-match))
 
+
+(defn expand-range-test
+  "Determines an index or time range's maximum and minimum tests when only one
+  test is provided"
+  [test idx match]
+  (case test
+    =  [>= match <= match]
+    <  [> (min-match idx) < match]
+    <= [> (min-match idx) <= match]
+    >  [> match <= (max-match idx)]
+    >= [>= match < (max-match idx)]))
 
 (defn time-range
   "Range query across an index.
@@ -93,20 +109,19 @@
   :limit - max number of flakes to return"
 
   ([db idx] (time-range db idx {}))
+
   ([db idx opts] (time-range db idx >= (min-match idx) <= (max-match idx) opts))
+
   ([db idx test match] (time-range db idx test match {}))
+
   ([db idx test match opts]
-   ;; only one test provided, we need to figure out the other test.
    (let [[start-test start-match end-test end-match]
-         (condp identical? test
-           = [>= match <= match]
-           < [> (min-match idx) < match]
-           <= [> (min-match idx) <= match]
-           > [> match <= (max-match idx)]
-           >= [>= match < (max-match idx)])]
+         (expand-range-test test idx match)]
      (time-range db idx start-test start-match end-test end-match opts)))
+
   ([db idx start-test start-match end-test end-match]
    (time-range db idx start-test start-match end-test end-match {}))
+
   ([db idx start-test start-match end-test end-match opts]
    ;; formulate a comparison flake based on conditions
    (go-try
@@ -231,12 +246,7 @@
   ([db idx test match opts]
    ;; only one test provided, we need to figure out the other test.
    (let [[start-test start-match end-test end-match]
-         (condp identical? test
-           = [>= match <= match]
-           < [> (min-match idx) < match]
-           <= [> (min-match idx) <= match]
-           > [> match <= (max-match idx)]
-           >= [>= match < (max-match idx)])]
+         (expand-range-test test idx match)]
      (index-range db idx start-test start-match end-test end-match opts)))
   ([db idx start-test start-match end-test end-match]
    (index-range db idx start-test start-match end-test end-match {}))

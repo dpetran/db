@@ -6,6 +6,8 @@
             [fluree.db.util.async :refer [<? go-try]]
             [fluree.db.util.log :as log]))
 
+(def types #{:spot :psot :post :opst :tspo})
+
 (defrecord IndexConfig [index-type comparator historyComparator])
 
 #?(:clj

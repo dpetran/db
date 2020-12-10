@@ -24,7 +24,7 @@
 
 (defn throw-err
   [e]
-  (when (exeption? e)
+  (when (exception? e)
     (throw e))
   e)
 
@@ -61,7 +61,7 @@
   The wrapping is done to maintain a full stack trace when jumping between
   multiple contexts."
   [x]
-  (if (exeption? x)
+  (if (exception? x)
     (throw (ex-info #?(:clj (or (.getMessage x) (str x)) :cljs (str x))
                     (or (ex-data x) {})
                     x))

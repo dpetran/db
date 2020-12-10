@@ -477,27 +477,32 @@
                 (throw (ex-info (str "Internal error reifying db root index: " (pr-str index))
                                 {:status 500
                                  :error  :db/unexpected-error})))]
-    (map->UnresolvedNode (assoc index-data :conn conn
-                                           :config cfg
-                                           :network network
-                                           :dbid dbid
-                                           :block block :t t
-                                           :leftmost? true))))
+    (map->UnresolvedNode (assoc index-data
+                                :conn      conn
+                                :config    cfg
+                                :network   network
+                                :dbid      dbid
+                                :block     block
+                                :t         t
+                                :leftmost? true))))
 
 
 (defn reify-db-root
-  "Constructs db from blank-db, and ensure index roots have proper config as unresolved nodes."
+  "Constructs db from blank-db, and ensure index roots have proper config as
+  unresolved nodes."
   [conn blank-db root-data]
   (let [{:keys [network dbid index-configs]} blank-db
         {:keys [block t ecount stats]} root-data
-        db* (assoc blank-db :block block
-                            :t t
-                            :ecount ecount
-                            :stats (assoc stats :indexed block))]
-    (reduce
-      (fn [db idx]
-        (assoc db idx (reify-index-root conn index-configs network dbid idx (get root-data idx) block t)))
-      db* [:spot :psot :post :opst :tspo])))
+        db (-> blank-db
+               (assoc :block  block
+                      :t      t
+                      :ecount ecount)
+               (update :stats assoc :indexed block))]
+    (reduce (fn [db idx]
+              (assoc db idx (as-> (get root-data idx) idx-data
+                              (reify-index-root conn index-configs network dbid
+                                                idx idx-data block t))))
+            db index/types)))
 
 
 (defn read-garbage
@@ -521,7 +526,8 @@
 
 
 (defn reify-db
-  "Reifies db at specified index point. If unable to read db-root at index, throws."
+  "Reifies db at specified index point. If unable to read db-root at index,
+  throws."
   [conn network dbid blank-db index]
   (go-try
     (let [db-root (read-db-root conn network dbid index)]
@@ -541,19 +547,20 @@
   ([conn network dbid start end]
    (log/trace "Block-range request: " network dbid start end)
    (go-try
-     (assert (>= end start) "Block range should be in ascending order, from earliest (smallest) block to most recent (largest) block.")
-     (let [parallelism (:parallelism conn)]
-       (loop [block  start
-              result []]
-         (let [res (<! (read-block conn network dbid block))]
-           (cond (or (nil? res) (instance? #?(:clj Throwable :cljs js/Error) res))
-                 result
+    (assert (>= end start)
+            "Block range should be in ascending order, from earliest (smallest) block to most recent (largest) block.")
+    (let [parallelism (:parallelism conn)]
+      (loop [block  start
+             result []]
+        (let [res (<! (read-block conn network dbid block))]
+          (cond (or (nil? res) (instance? #?(:clj Throwable :cljs js/Error) res))
+                result
 
-                 (= block end)
-                 (conj result res)
+                (= block end)
+                (conj result res)
 
-                 :else
-                 (recur (inc block) (conj result res)))))))))
+                :else
+                (recur (inc block) (conj result res)))))))))
 
 (defn block
   "Reads a single block from storage"

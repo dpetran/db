@@ -9,7 +9,7 @@
                :cljs [cljs.core.async :refer [go <!] :as async])
             #?(:clj [fluree.db.util.async :refer [<? go-try]])
             #?(:clj [clojure.java.io :as io])
-            [fluree.db.util.core :as util :refer [try* catch*]]
+            [fluree.db.util.core :as util :refer [try* catch* exception?]]
             [fluree.db.query.schema :as schema])
   #?(:cljs (:require-macros [fluree.db.util.async :refer [<? go-try]])
      :clj
@@ -217,7 +217,8 @@
     (go
       (try*
         (let [data (<! (storage-read conn key))]
-          (if (or (nil? data) (instance? #?(:clj Throwable :cljs js/Error) data))
+          (if (or (nil? data)
+                  (exception? data))
             (async/close! return-ch)
             (->> (serdeproto/-deserialize-leaf (serde conn) data)
                  :flakes
@@ -553,7 +554,8 @@
       (loop [block  start
              result []]
         (let [res (<! (read-block conn network dbid block))]
-          (cond (or (nil? res) (instance? #?(:clj Throwable :cljs js/Error) res))
+          (cond (or (nil? res)
+                    (exception? res))
                 result
 
                 (= block end)

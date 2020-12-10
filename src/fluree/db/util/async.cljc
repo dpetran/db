@@ -1,6 +1,6 @@
 (ns fluree.db.util.async
   (:require
-    [fluree.db.util.core :refer [try* catch*]]
+    [fluree.db.util.core :refer [try* catch* exception?]]
     #?(:clj  [clojure.core.async :refer [go <!] :as async]
        :cljs [cljs.core.async :refer [go <!] :as async])
     #?(:clj [clojure.core.async.impl.ioc-macros :as ioc])
@@ -22,8 +22,10 @@
      [then else]
      (if (cljs-env? &env) then else)))
 
-(defn throw-err [e]
-  (when (instance? #?(:clj Throwable :cljs js/Error) e) (throw e))
+(defn throw-err
+  [e]
+  (when (exeption? e)
+    (throw e))
   e)
 
 #?(:clj
@@ -55,11 +57,11 @@
             (catch Throwable t# t#))))))
 
 (defn throw-if-exception
-  "Helper method that checks if x is Exception and if yes, wraps it in a new
-  exception, passing though ex-data if any, and throws it. The wrapping is done
-  to maintain a full stack trace when jumping between multiple contexts."
+  "Wraps errors in a new ex-info, passing though ex-data if any, and throws.
+  The wrapping is done to maintain a full stack trace when jumping between
+  multiple contexts."
   [x]
-  (if (instance? #?(:clj Throwable :cljs js/Error) x)
+  (if (exeption? x)
     (throw (ex-info #?(:clj (or (.getMessage x) (str x)) :cljs (str x))
                     (or (ex-data x) {})
                     x))

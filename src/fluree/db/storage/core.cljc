@@ -543,7 +543,7 @@
 
 ;; TODO - should look to add some parallelism to block fetches
 (defn block-range
-  "Returns a channel that will contains blocks in specified range."
+  "Returns a channel that will contain blocks in specified range."
   ([conn network dbid start] (block-range conn network dbid start nil))
   ([conn network dbid start end]
    (log/trace "Block-range request: " network dbid start end)

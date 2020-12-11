@@ -13,7 +13,9 @@
 ;;        way code only exists for nodejs compilation
 (defn block-range
   "Returns an async channel containing each of the blocks from start (inclusive)
-  to end (inclusive), if provided. Should received PERMISSIONED db."
+  to end (inclusive), if provided. This function differs from
+  `fluree.db.storage.core/block-range` by validating permissions for each block
+  before inclusion. The `db` argument must therefore be permissioned."
   [{:keys [conn network dbid] :as db} start end opts]
   (let [last-block (or end start)      ;; allow for nil end-block for now
         root?      (-> db :permissions :root?)

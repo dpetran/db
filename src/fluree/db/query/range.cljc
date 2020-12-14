@@ -39,8 +39,8 @@
       :spot [p1 (dbproto/-p-prop db :id p2) p3 t op m]
       :psot [p2 (dbproto/-p-prop db :id p1) p3 t op m]
       :post [p3 (dbproto/-p-prop db :id p1) p2 t op m]
-      :opst [p3 (dbproto/-p-prop db :id p2) p1 t op m])))
-
+      :opst [p3 (dbproto/-p-prop db :id p2) p1 t op m]
+      :tspo [p1 (dbproto/-p-prop db :id p2) p3 t op m])))
 
 
 (def ^{:private true :const true} subject-min-match [util/max-long])
@@ -49,8 +49,8 @@
 (def ^{:private true :const true} pred-max-match [flake/MAX-PREDICATE-ID])
 
 ;; Transaction max/min matches are reversed
-(def ^{:private true :const true} transaction-min-match [util/max-integer])
-(def ^{:private true :const true} transaction-max-match [util/min-integer])
+(def ^{:private true :const true} txn-min-match [util/max-integer])
+(def ^{:private true :const true} txn-max-match [util/min-integer])
 
 (defn- min-match
   "Smallest index flake part match by index"
@@ -60,7 +60,7 @@
     :psot pred-min-match
     :post pred-min-match
     :opst subject-min-match
-    :tspo transaction-min-match))
+    :tspo txn-min-match))
 
 
 (defn- max-match
@@ -71,7 +71,7 @@
     :psot pred-max-match
     :post pred-max-match
     :opst subject-max-match
-    :tspo transaction-max-match))
+    :tspo txn-max-match))
 
 
 (defn expand-range-test

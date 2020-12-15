@@ -78,7 +78,7 @@
   "Determines an index or time range's maximum and minimum tests when only one
   test is provided"
   [test idx match]
-  (case test
+  (condp identical? test
     =  [>= match <= match]
     <  [> (min-match idx) < match]
     <= [> (min-match idx) <= match]

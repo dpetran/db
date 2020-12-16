@@ -6,7 +6,10 @@
             [fluree.db.util.async :refer [<? go-try]]
             [fluree.db.util.log :as log]))
 
-(def types #{:spot :psot :post :opst :tspo})
+(def types
+  "The five possible index orderings based on the subject, predicate, object, and
+  transaction flake attributes"
+  #{:spot :psot :post :opst :tspo})
 
 (defrecord IndexConfig [index-type comparator historyComparator])
 

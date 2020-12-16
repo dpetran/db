@@ -323,7 +323,7 @@
 
 (defn new-novelty-map
   [index-configs]
-  (->> [:spot :psot :post :opst :tspo]
+  (->> index/types
        (reduce
          (fn [m idx]
            (let [ss (avl/sorted-set-by (get-in index-configs [idx :historyComparator]))]

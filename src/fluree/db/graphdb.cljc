@@ -46,19 +46,18 @@
   [db pred-id]
   (go-try
     (let [flakes-to-idx (<? (query-range/index-range db :psot = [pred-id]))
-          {:keys [post size]} (:novelty db)
+          size          (get-in db [:novelty :size])
           with-size     (flake/size-bytes flakes-to-idx)
           total-size    (+ size with-size)
-          {:keys [novelty-min novelty-max]} (get-in db [:conn :meta])
-          _             (if (> total-size novelty-max)
-                          (throw (ex-info (str "You cannot add " pred-id " to the index at this point. There are too many affected flakes.")
-                                          {:error  :db/max-novelty-size
-                                           :status 400})))
-          post          (into post flakes-to-idx)]
-      (swap! (:schema-cache db) empty)
-      (-> db
-          (assoc-in [:novelty :post] post)
-          (assoc-in [:novelty :size] total-size)))))
+          novelty-max   (get-in db [:conn :meta :novelty-max])]
+      (if-not (> total-size novelty-max)
+        (do (swap! (:schema-cache db) empty)
+            (-> db
+                (assoc-in [:novelty :size] total-size)
+                (update-in [:novelty :post] into flakes-to-idx)))
+        (throw (ex-info (str "You cannot add " pred-id " to the index at this point. There are too many affected flakes.")
+                        {:error  :db/max-novelty-size
+                         :status 400}))))))
 
 (defn with-t
   "Processes a single transaction, adding it to the DB.

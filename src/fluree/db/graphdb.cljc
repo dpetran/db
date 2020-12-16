@@ -89,11 +89,12 @@
                                    (update-in [:stats :size] + flakes-bytes) ;; total db ~size
                                    (update-in [:stats :flakes] + (count add-flakes)))]
       (loop [[^Flake f & r] add-flakes
-             spot   (get-in db* [:novelty :spot])
-             psot   (get-in db* [:novelty :psot])
-             post   (get-in db* [:novelty :post])
-             opst   (get-in db* [:novelty :opst])
-             ecount (:ecount db)]
+             spot           (get-in db* [:novelty :spot])
+             psot           (get-in db* [:novelty :psot])
+             post           (get-in db* [:novelty :post])
+             opst           (get-in db* [:novelty :opst])
+             tspo           (get-in db* [:novelty :tspo])
+             ecount         (:ecount db)]
         (if-not f
           (let [db*  (assoc db* :ecount ecount
                                 :novelty {:spot spot :psot psot :post post :opst opst
@@ -116,6 +117,7 @@
                    (if (get ref?-map (.-p f))
                      (conj opst f)
                      opst)
+                   (conj tspo f)
                    ecount*)))))))
 
 (defn with

@@ -329,25 +329,9 @@
              (assoc m idx ss)))
          {:size 0})))
 
-(def default-index-configs {:spot  (index/map->IndexConfig {:index-type        :spot
-                                                            :comparator        flake/cmp-flakes-spot
-                                                            :historyComparator flake/cmp-flakes-spot-novelty})
-                            :psot  (index/map->IndexConfig {:index-type        :psot
-                                                            :comparator        flake/cmp-flakes-psot
-                                                            :historyComparator flake/cmp-flakes-psot-novelty})
-                            :post  (index/map->IndexConfig {:index-type        :post
-                                                            :comparator        flake/cmp-flakes-post
-                                                            :historyComparator flake/cmp-flakes-post-novelty})
-                            :opst  (index/map->IndexConfig {:index-type        :opst
-                                                            :comparator        flake/cmp-flakes-opst
-                                                            :historyComparator flake/cmp-flakes-opst-novelty})
-                            :tspo  (index/map->IndexConfig {:index-type        :tspo
-                                                            :comparator        flake/cmp-flakes-block
-                                                            :historyComparator flake/cmp-flakes-history})})
-
 (defn new-empty-index
   ([conn network dbid idx]
-   (new-empty-index conn default-index-configs network dbid idx))
+   (new-empty-index conn index/default-configs network dbid idx))
 
   ([conn index-configs network dbid idx]
    (let [index-config (get index-configs idx)
@@ -368,7 +352,7 @@
   (assert conn "No conn provided when creating new db.")
   (assert network "No network provided when creating new db.")
   (assert dbid "No dbid provided when creating new db.")
-  (let [novelty     (new-novelty-map default-index-configs)
+  (let [novelty     (new-novelty-map index/default-configs)
         permissions {:collection {:all? false}
                      :predicate  {:all? true}
                      :root?      true}
@@ -384,7 +368,7 @@
         fork-block  nil
         schema      nil
         settings    nil]
-    (->GraphDb conn network dbid 0 -1 nil stats spot psot post opst tspo schema settings default-index-configs schema-cache novelty permissions fork fork-block current-db-fn)))
+    (->GraphDb conn network dbid 0 -1 nil stats spot psot post opst tspo schema settings index/default-configs schema-cache novelty permissions fork fork-block current-db-fn)))
 
 (defn graphdb?
   [db]

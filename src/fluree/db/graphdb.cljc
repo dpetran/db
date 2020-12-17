@@ -39,8 +39,13 @@
       (throw (ex-info (str "Invalid ledger identity: " ledger)
                       {:status 400 :error :db/invalid-ledger-name})))))
 
-;; exclude these predicates from the database
-(def ^:const exclude-predicates #{const/$_tx:tx const/$_tx:sig const/$_tx:tempids})
+(def ^:const exclude-predicates
+  "Predicates to exclude from the database"
+  #{const/$_tx:tx const/$_tx:sig const/$_tx:tempids})
+
+(defn include-flake?
+  [^Flake f]
+  (not (contains? exclude-predicates (.-p f))))
 
 (defn add-predicate-to-idx
   [db pred-id]
@@ -64,20 +69,24 @@
   Assumes flakes are already properly sorted."
   [db flakes]
   (go-try
-    (let [t                    (.-t ^Flake (first flakes))
+    (let [t                    (->> flakes first flake/t-val)
           _                    (when (not= t (dec (:t db)))
                                  (throw (ex-info (str "Invalid with called for db " (:dbid db) " because current 't', " (:t db) " is not beyond supplied transaction t: " t ".")
                                                  {:status 500
                                                   :error  :db/unexpected-error})))
-          add-flakes           (filter #(not (exclude-predicates (.-p ^Flake %))) flakes)
-          add-preds            (into #{} (map #(.-p ^Flake %) add-flakes))
+          add-flakes           (filter include-flake? flakes)
+          add-preds            (->> add-flakes
+                                    (map flake/p-val)
+                                    (into #{}))
           idx?-map             (into {} (map (fn [p] [p (dbproto/-p-prop db :idx? p)]) add-preds))
           ref?-map             (into {} (map (fn [p] [p (dbproto/-p-prop db :ref? p)]) add-preds))
           flakes-bytes         (flake/size-bytes add-flakes)
           schema-change?       (schema-util/schema-change? add-flakes)
           root-setting-change? (schema-util/setting-change? add-flakes)
           pred-ecount          (-> db :ecount (get const/$_predicate))
-          add-pred-to-idx?     (if schema-change? (schema-util/add-to-post-preds? add-flakes pred-ecount) [])
+          add-pred-to-idx?     (if schema-change?
+                                 (schema-util/add-to-post-preds? add-flakes pred-ecount)
+                                 [])
           db*                  (loop [[add-pred & r] add-pred-to-idx?
                                       db db]
                                  (if add-pred

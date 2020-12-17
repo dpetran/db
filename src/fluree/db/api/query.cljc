@@ -120,34 +120,49 @@
                    acc))) {} prefixes))
 
 
-(defn resolve-block-range
-  [db query-map]
+(defn format-bound
+  [b]
   (go-try
-    (let [range     (if (sequential? (:block query-map))
-                      (:block query-map)
-                      [(:block query-map) (:block query-map)])
-          [block-start block-end]
-          (if (some string? range)                          ;; do we need to convert any times to block integers?
-            [(<? (time-travel/block-to-int-format db (first range)))
-             (when-let [end (second range)]
-               (<? (time-travel/block-to-int-format db end)))] range)
-          db-block  (:block db)
-          _         (when (> block-start db-block)
-                      (throw (ex-info (str "Start block is out of range for this ledger. Start block provided: " (pr-str block-start) ". Database block: " (pr-str db-block)) {:status 400 :error :db/invalid-query})))
-          [block-start block-end]
-          (cond
-            (and block-start block-end) [block-start block-end]
-            block-start [block-start (:block db)]
-            :else (throw (ex-info (str "Invalid block range provided: " (pr-str range)) {:status 400 :error :db/invalid-query})))
-          _         (when (not (and (pos-int? block-start) (pos-int? block-end)))
-                      (throw (ex-info (str "Invalid block range provided: " (pr-str range)) {:status 400 :error :db/invalid-query})))
-          [block-start block-end]
-          (if (< block-end block-start)
-            [block-end block-start]                         ;; make sure smallest number comes first
-            [block-start block-end])
-          block-end (if (> block-end db-block)
-                      db-block block-end)]
-      [block-start block-end])))
+   ;; REVIEW: Do we need to convert any times to block integers?
+   (if (string? b)
+     (<? (time-travel/block-to-int-format db b))
+     b)))
+
+(defn block->bounds
+  [blk]
+  (go-try
+   (let [bounds (if (sequential? blk) blk [blk])]
+     (->> bounds
+          (map #(some-> % format-bound <?))
+          (remove nil?)
+          seq))))
+
+(defn latest-block
+  [endpoint db-block]
+  (if endpoint
+    (min endpoint db-block)
+    db-block))
+
+(defn resolve-block-range
+  [{db-block :block, :as db} {:keys [block] :as query-map}]
+  (go-try
+   (if-let [[start end] (<? (block->bounds block))]
+     (if (<= start db-block)
+       (let [end (latest-block end db-block)]
+         (if (every? pos-int? [start end])
+           (sort [start end])
+
+           (throw (ex-info (str "Invalid block range provided: " (pr-str block)
+                                ". Both bounds should be positive integers")
+                           {:status 400, :error :db/invalid-query})))
+
+         (throw (ex-info (str "Start block is out of range for this ledger"
+                              ". Start block provided: " (pr-str start)
+                              ". Database block: " (pr-str db-block))
+                         {:status 400, :error :db/invalid-query})))
+
+     (throw (ex-info (str "Invalid block range provided: " (pr-str block))
+                     {:status 400, :error :db/invalid-query}))))))
 
 
 (defn- format-block-resp-pretty
@@ -222,15 +237,18 @@
   (go-try
     (let [query-map     (dissoc query :opts)
           auth-id       (:auth opts)
-          start #?(:clj (System/nanoTime) :cljs (util/current-time-millis))
+          start         #?(:clj (System/nanoTime)
+                           :cljs (util/current-time-millis))
           db            (<? (db conn ledger {:auth (when auth-id ["_auth/id" auth-id])}))
-          [block-start block-end] (<? (resolve-block-range db query-map))
-          result        (if (= '(:block) (keys (dissoc query-map :pretty-print :opts :prettyPrint)))
-                          (<? (block-range db block-start block-end opts))
+          [start end]   (<? (resolve-block-range db query-map))
+          result        (if (-> query-map
+                                (dissoc :pretty-print :opts :prettyPrint)
+                                keys
+                                (= [:block]))
+                          (<? (block-range db start end opts))
                           (throw (ex-info (str "Block query not properly formatted. It must only have a block key. Provided "
                                                (pr-str query-map))
-                                          {:status 400
-                                           :error  :db/invalid-query})))
+                                          {:status 400, :error :db/invalid-query})))
           result'       (if (or (:prettyPrint query-map) (:pretty-print query-map))
                           (<? (format-blocks-resp-pretty db result))
                           result)]

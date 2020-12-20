@@ -1,8 +1,8 @@
 ;; Primary API ns for any user-invoked actions. Wrapped by language & use specific APIS that are directly exposed
 (ns fluree.db.api.query
   (:require [clojure.string :as str]
-            #?(:clj  [clojure.core.async :as async]
-               :cljs [cljs.core.async :as async])
+            [#?(:clj  clojure.core.async
+                :cljs cljs.core.async) :as async :refer [>! chan go]]
             [fluree.db.time-travel :as time-travel]
             [fluree.db.query.fql :as fql]
             [fluree.db.query.range :as query-range]
@@ -121,21 +121,23 @@
 
 
 (defn format-bound
-  [b]
-  (go-try
-   ;; REVIEW: Do we need to convert any times to block integers?
-   (if (string? b)
-     (<? (time-travel/block-to-int-format db b))
-     b)))
+  [db bound]
+  (let [c (chan)]
+    ;; REVIEW: Do we need to convert any times to block integers?
+    (if (string? bound)
+      (-> db
+          (time-travel/block-to-int-format bound)
+          (async/pipe c))
+      (async/put! c bound))
+    c))
 
 (defn block->bounds
-  [blk]
-  (go-try
-   (let [bounds (if (sequential? blk) blk [blk])]
-     (->> bounds
-          (map #(some-> % format-bound <?))
-          (remove nil?)
-          seq))))
+  [db blk]
+  (let [bounds (if (sequential? blk) blk [blk])]
+    (->> bounds
+         (remove nil?)
+         (map (partial format-bound db))
+         seq)))
 
 (defn latest-block
   [endpoint db-block]
@@ -146,23 +148,25 @@
 (defn resolve-block-range
   [{db-block :block, :as db} {:keys [block] :as query-map}]
   (go-try
-   (if-let [[start end] (<? (block->bounds block))]
-     (if (<= start db-block)
-       (let [end (latest-block end db-block)]
-         (if (every? pos-int? [start end])
-           (sort [start end])
+   (if-let [[start-ch end-ch] (block->bounds db block)]
+     (let [start (some-> start-ch <?)
+           end   (some-> end-ch <?)]
+       (if (<= start db-block)
+         (let [end (latest-block end db-block)]
+           (if (every? pos-int? [start end])
+             (sort [start end])
 
-           (throw (ex-info (str "Invalid block range provided: " (pr-str block)
-                                ". Both bounds should be positive integers")
-                           {:status 400, :error :db/invalid-query})))
+             (throw (ex-info (str "Invalid block range provided: " (pr-str block)
+                                  ". Both bounds should be positive integers")
+                             {:status 400, :error :db/invalid-query}))))
 
          (throw (ex-info (str "Start block is out of range for this ledger"
                               ". Start block provided: " (pr-str start)
                               ". Database block: " (pr-str db-block))
-                         {:status 400, :error :db/invalid-query})))
+                         {:status 400, :error :db/invalid-query}))))
 
      (throw (ex-info (str "Invalid block range provided: " (pr-str block))
-                     {:status 400, :error :db/invalid-query}))))))
+                     {:status 400, :error :db/invalid-query})))))
 
 
 (defn- format-block-resp-pretty

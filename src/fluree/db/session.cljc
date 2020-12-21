@@ -101,13 +101,11 @@
                                        next-block (-> last-indexed-db :block inc)]
                                   (if (> next-block latest-block)
                                     db
-                                    (let [block-data (<? (storage/read-block conn network dbid next-block))]
-                                      (if block-data
-                                        (let [{:keys [flakes block t]} block-data
-                                              db* (<? (dbproto/-with db block flakes))]
-                                          (recur db* (inc next-block)))
-                                        (throw (ex-info (str "Error reading block " next-block " for db: " network "/" dbid ".")
-                                                        {:status 500 :error :db/unexpected-error})))))))
+                                    (if-let [{:keys [flakes block t]} (<? (storage/read-block conn network dbid next-block))]
+                                      (let [db* (<? (dbproto/-with db block flakes))]
+                                        (recur db* (inc next-block)))
+                                      (throw (ex-info (str "Error reading block " next-block " for db: " network "/" dbid ".")
+                                                      {:status 500 :error :db/unexpected-error}))))))
               db*             (assoc db :schema (<? (schema/schema-map db)))
               db**            (assoc db* :settings (<? (schema/setting-map db*)))]
           (async/put! pc db**))

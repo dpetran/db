@@ -36,48 +36,54 @@
 (defn is-schema-flake?
   "Returns true if flake is a schema flake."
   [^Flake f]
-  (<= schema-sid-start (.-s f) schema-sid-end))
+  (<= schema-sid-start (flake/s f) schema-sid-end))
 
 (defn is-setting-flake?
   "Returns true if flake is a root setting flake."
   [^Flake f]
-  (<= setting-sid-start (.-s f) setting-sid-end))
+  (<= setting-sid-start (flake/s f) setting-sid-end))
 
 (defn is-language-flake?
   "Returns true if flake is a language flake."
   [^Flake f]
-  (= (.-p f) const/$_setting:language))
+  (= (flake/p f) const/$_setting:language))
 
 (defn is-genesis-flake?
   "Returns true if flake is a root setting flake."
   [^Flake f]
   (cond
-    (and (<= tag-sid-start (.-s f) tag-sid-end)) true
+    (and (<= tag-sid-start (flake/s f) tag-sid-end)) true
     (is-setting-flake? f) true
-    (<= auth-sid-start (.-s f) auth-sid-end) true
-    (<= role-sid-start (.-s f) role-sid-end) true
-    (<= rule-sid-start (.-s f) rule-sid-end) true
-    (<= fn-sid-start (.-s f) fn-sid-end) true
-    (and (<= collection-sid-start (.-s f) collection-sid-end)
-         (<= (flake/sid->i (.-s f)) const/$numSystemCollections)) true
-    (and (<= predicate-sid-start (.-s f) predicate-sid-end)
-         (<= (flake/sid->i (.-s f)) const/$maxSystemPredicates)) true
+    (<= auth-sid-start (flake/s f) auth-sid-end) true
+    (<= role-sid-start (flake/s f) role-sid-end) true
+    (<= rule-sid-start (flake/s f) rule-sid-end) true
+    (<= fn-sid-start (flake/s f) fn-sid-end) true
+    (and (<= collection-sid-start (flake/s f) collection-sid-end)
+         (<= (flake/sid->i (flake/s f)) const/$numSystemCollections)) true
+    (and (<= predicate-sid-start (flake/s f) predicate-sid-end)
+         (<= (flake/sid->i (flake/s f)) const/$maxSystemPredicates)) true
 
     :else false))
 
 (defn add-to-post-preds?
   [flakes pred-ecount]
-  (keep #(if (and (or (= (.-p %) const/$_predicate:index)
-                      (= (.-p %) const/$_predicate:unique))
-                  (= (.-o %) true)
-                  (>= pred-ecount (.-s %))) (.-s %)) flakes))
+  (keep (fn [flk]
+          (when (and (or (= (flake/p flk) const/$_predicate:index)
+                         (= (flake/p flk) const/$_predicate:unique))
+                     (= (flake/o flk) true)
+                     (>= pred-ecount (flake/s flk)))
+            (flake/s flk)))
+        flakes))
 
 (defn remove-from-post-preds
   [flakes]
-  (keep #(when (and (true? (.-op %))
-                    (or (= (.-p %) const/$_predicate:index)
-                        (= (.-p %) const/$_predicate:unique))
-                    (= (.-o %) false)) (.-s %)) flakes))
+  (keep (fn [flk]
+          (when (and (true? (flake/op flk))
+                     (or (= (flake/p flk) const/$_predicate:index)
+                         (= (flake/p flk) const/$_predicate:unique))
+                     (= (flake/o flk) false))
+            (flake/s flk)))
+        flakes))
 
 (defn schema-change?
   "Returns true if any of the provided flakes are a schema flake."
@@ -94,12 +100,12 @@
   [flakes]
   (some #(when (and (is-language-flake? %)
                     (is-setting-flake? %)
-                    (true? (.-op %))) (.-o %)) flakes))
+                    (true? (flake/op %))) (flake/o %)) flakes))
 
 (defn is-pred-flake?
   "Returns true if flake is a schema flake."
   [^Flake f]
-  (<= flake/MIN-PREDICATE-ID (.-s f) flake/MAX-PREDICATE-ID))
+  (<= flake/MIN-PREDICATE-ID (flake/s f) flake/MAX-PREDICATE-ID))
 
 
 (defn pred-change?

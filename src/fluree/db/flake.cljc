@@ -401,21 +401,25 @@
   (let [[s p o t op m] parts]
     (->Flake s p o t op m)))
 
-(defn s-val
+(defn s
   [^Flake f]
   (.-s f))
 
-(defn p-val
+(defn p
   [^Flake f]
   (.-p f))
 
-(defn o-val
+(defn o
   [^Flake f]
   (.-o f))
 
-(defn t-val
+(defn t
   [^Flake f]
   (.-t f))
+
+(defn op
+  [^Flake f]
+  (.-op f))
 
 (defn flip-flake
   "Takes a flake and returns one with the provided block and .-op flipped from true/false.

@@ -69,14 +69,14 @@
   Assumes flakes are already properly sorted."
   [db flakes]
   (go-try
-    (let [t                    (->> flakes first flake/t-val)
+    (let [t                    (->> flakes first flake/t)
           _                    (when (not= t (dec (:t db)))
                                  (throw (ex-info (str "Invalid with called for db " (:dbid db) " because current 't', " (:t db) " is not beyond supplied transaction t: " t ".")
                                                  {:status 500
                                                   :error  :db/unexpected-error})))
           add-flakes           (filter include-flake? flakes)
           add-preds            (->> add-flakes
-                                    (map flake/p-val)
+                                    (map flake/p)
                                     (into #{}))
           idx?-map             (into {} (map (fn [p] [p (dbproto/-p-prop db :idx? p)]) add-preds))
           ref?-map             (into {} (map (fn [p] [p (dbproto/-p-prop db :ref? p)]) add-preds))

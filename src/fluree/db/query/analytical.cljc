@@ -3,7 +3,8 @@
             [fluree.db.query.range :as query-range]
             #?(:clj  [clojure.core.async :as async]
                :cljs [cljs.core.async :as async])
-            #?(:clj [fluree.db.query.analytical-full-text :as full-text])
+            #?(:clj [fluree.db.query.analytical-full-text :as full-text-query])
+            #?(:clj [fluree.db.full-text :as full-text])
             [fluree.db.time-travel :as time-travel]
             [fluree.db.util.async :refer [<? go-try merge-into?]]
             [fluree.db.util.core :as util]
@@ -386,9 +387,8 @@
                    [var search search-param] clause
                    var         (variable? var)
                    storage-dir (-> db :conn :meta :file-storage-path)
-                   store       (full-text/index-store storage-dir (:network db)
-                                                      (:dbid db))]
-               (full-text/search db store [var search search-param] language)))))
+                   store       (full-text/storage storage-dir (:network db) (:dbid db))]
+               (full-text-query/search db store [var search search-param] language)))))
 
 
 ;; Can be: ["?item" "rdf:type" "person"]

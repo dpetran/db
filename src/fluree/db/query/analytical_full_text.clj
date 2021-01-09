@@ -4,6 +4,7 @@
             [clucie.store :as store]
             [clojure.string :as str]
             [fluree.db.flake :as flake]
+            [fluree.db.full-text :as full-text]
             [fluree.db.util.log :as log]
             [fluree.db.dbproto :as dbproto])
   (:import (org.apache.lucene.analysis.en EnglishAnalyzer)
@@ -45,10 +46,6 @@
                     :ru (RussianAnalyzer.)
 
                     (analysis/standard-analyzer)))
-
-(defn index-store
-  [path-to-dir network dbid]
-  (store/disk-store (str path-to-dir network "/" dbid "/lucene")))
 
 (defn collection-predicates-full-text
   [db collection-name]
@@ -103,7 +100,7 @@
 
   (dbproto/-p-prop db :id "_user/username")
 
-  (def store (index-store "data/ledger/" "fluree" "test"))
+  (def store (full-text/storage "data/ledger/" "fluree" "test"))
 
 
   (str/join "/" ["_user" "username"])
@@ -122,4 +119,3 @@
   ;; - if members of that collection are still in FT
 
   )
-

@@ -319,7 +319,7 @@
           [pred fullText] (->> predicate-flakes
                                (partition-by #(.-s %))
                                (reduce (fn [[pred fullText] pred-flakes]
-                                         (let [id        (.-s (first pred-flakes))
+                                         (let [id        (.-s ^Flake (first pred-flakes))
                                                p->v      (flake->pred-map pred-flakes)
                                                p-name    (get p->v const/$_predicate:name)
                                                p-type    (->> (get p->v const/$_predicate:type)
@@ -349,7 +349,10 @@
                                                           :fullText           fullText?}]
                                            [(assoc pred id p-props
                                                         p-name p-props)
-                                            (if fullText? (conj fullText id) fullText)])) [{} #{}]))]
+                                            (if fullText?
+                                              (conj fullText id)
+                                              fullText)]))
+                                       [{} #{}]))]
       {:t        (:t db)                                    ;; record time of spec generation, can use to determine cache validity
        :coll     coll
        :pred     pred

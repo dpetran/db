@@ -1,51 +1,11 @@
 (ns fluree.db.query.analytical-full-text
   (:require [clucie.core :as clucie]
-            [clucie.analysis :as analysis]
             [clucie.store :as store]
             [clojure.string :as str]
             [fluree.db.flake :as flake]
             [fluree.db.full-text :as full-text]
             [fluree.db.util.log :as log]
-            [fluree.db.dbproto :as dbproto])
-  (:import (org.apache.lucene.analysis.en EnglishAnalyzer)
-           (org.apache.lucene.analysis.cn.smart SmartChineseAnalyzer)
-           (org.apache.lucene.analysis.hi HindiAnalyzer)
-           (org.apache.lucene.analysis.es SpanishAnalyzer)
-           (org.apache.lucene.analysis.ar ArabicAnalyzer)
-           (org.apache.lucene.analysis.id IndonesianAnalyzer)
-           (org.apache.lucene.analysis.ru RussianAnalyzer)
-           (org.apache.lucene.analysis.bn BengaliAnalyzer)
-           (org.apache.lucene.analysis.br BrazilianAnalyzer)
-           (org.apache.lucene.analysis.fr FrenchAnalyzer)))
-
-
-;; I chose the top ten most spoken languages in the world
-;; https://en.wikipedia.org/wiki/List_of_languages_by_total_number_of_speakers
-;; TODO - determine size impact of these analyzers - can we package them separately if large impact?
-
-(defn analyzer
-  [language]
-  (condp = language :ar (ArabicAnalyzer.)
-
-                    :bn (BengaliAnalyzer.)
-
-                    :br (BrazilianAnalyzer.)
-
-                    :cn (SmartChineseAnalyzer.)
-
-                    :en (EnglishAnalyzer.)
-
-                    :es (SpanishAnalyzer.)
-
-                    :fr (FrenchAnalyzer.)
-
-                    :hi (HindiAnalyzer.)
-
-                    :id (IndonesianAnalyzer.)
-
-                    :ru (RussianAnalyzer.)
-
-                    (analysis/standard-analyzer)))
+            [fluree.db.dbproto :as dbproto]))
 
 (defn collection-predicates-full-text
   [db collection-name]
@@ -73,7 +33,7 @@
                        search-params (->> (map #(assoc {} (-> % str keyword) search-param)
                                                fullTextPreds) (into #{}))]
                    [{:collection (str cid)} search-params]))
-        res    (clucie/search store query limit (analyzer language) 0 limit)]
+        res    (clucie/search store query limit (full-text/analyzer language) 0 limit)]
     {:headers [var]
      :tuples  (map #(->> % :_id read-string (conj [])) res)
      :vars    {}}))
@@ -111,7 +71,7 @@
 
                   ]
 
-                 10000 (analyzer) 0 10000)
+                 10000 (full-text/analyzer :en) 0 10000)
 
   ;; If we add a predicate to fullText search
   ;; - if members of that collection are already in FT
